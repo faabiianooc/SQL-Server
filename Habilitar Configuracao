@@ -1,0 +1,6 @@
+sp_configure 'Show advanced options',1
+reconfigure
+GO
+sp_configure 'Ole Automation procedures',1
+reconfigure
+GO

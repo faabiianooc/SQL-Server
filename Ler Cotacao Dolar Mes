@@ -1,0 +1,45 @@
+DECLARE @temp TABLE (RowNum INT, DATA NVARCHAR(MAX))
+DECLARE @url VARCHAR(MAX),
+@win INT,
+@hr INT,
+@Text VARCHAR(MAX),
+@RowID INT,
+@STATUS SMALLINT,
+@Accuracy tinyint
+ 
+DECLARE @dataInicial VARCHAR(10) = dateadd(DAY,1,eomonth(GETDATE(),-1)),@dataFinal VARCHAR(10) = eomonth(GETDATE())
+ 
+SET @datainicial = SUBSTRING(@datainicial,6,2) + '-' + SUBSTRING(@datainicial,9,2) + '-' + SUBSTRING(@datainicial,1,4)
+SET @dataFinal = SUBSTRING(@dataFinal,6,2) + '-' + SUBSTRING(@dataFinal,9,2) + '-' + SUBSTRING(@dataFinal,1,4)
+ 
+SET @url = 'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarPeriodo(dataInicial=@dataInicial,dataFinalCotacao=@dataFinalCotacao)?@dataInicial='''+@datainicial+'''&@dataFinalCotacao='''+@dataFinal+'''&$top=100&$format=json&$select=cotacaoCompra,cotacaoVenda,dataHoraCotacao'
+ 
+ 
+ 
+EXEC @hr = sp_OACreate 'MSXML2.XMLHTTP', @win OUT
+ 
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @win
+ 
+EXEC @hr = sp_OAMethod @win, 'Open', NULL, 'GET', @url, 'false'
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @win
+ 
+EXEC @hr = sp_OAMethod @win, 'Send'
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @win
+ 
+IF object_id('TempDb.dbo.#Dolar') IS NOT NULL
+DROP TABLE #Dolar
+ 
+CREATE TABLE #Dolar(retorno VARCHAR(MAX))
+INSERT INTO #Dolar 
+EXEC @hr = sp_OAGetProperty @win, 'ResponseText'
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @win
+ 
+EXEC @hr = sp_OADestroy @win
+IF @hr <> 0 EXEC sp_OAGetErrorInfo @win
+ 
+SELECT 
+	CAST(JSON_VALUE(VALUE,'$.cotacaoCompra') AS DECIMAL(10,4)) [Cotacao Compra],
+	CAST(JSON_VALUE(VALUE,'$.cotacaoVenda') AS DECIMAL(10,4)) [Cotacao Venda],
+	JSON_VALUE(VALUE,'$.dataHoraCotacao') [DATA Hora Cotacao]
+FROM #Dolar
+CROSS APPLY OPENJSON(JSON_QUERY(retorno, '$.value')) AS x
