@@ -20,7 +20,7 @@ DECLARE @url NVARCHAR(256);
 
 SET @contentType = N'application/json';
 SET @postData = N'{
-        "text": "Mensagem Teste SS"
+        "text": "SET YOUR MESSAGE HERE"
     }';
     
     --Set your url from webhook here
